@@ -1,0 +1,13 @@
+import { ExactRoleStatements, Role, RoleInput, Statements } from "./types.mjs";
+export type AuthorizeResponse = {
+  success: false;
+  error: string;
+} | {
+  success: true;
+  error?: never | undefined;
+};
+export declare function role<const TRoleStatements extends Statements, TAuthorizeStatements extends Statements = TRoleStatements>(statements: TRoleStatements): Role<ExactRoleStatements<TRoleStatements>, TAuthorizeStatements>;
+export declare function createAccessControl<const TStatements extends Statements>(s: TStatements): {
+  newRole<const TRoleStatements extends Statements>(statements: RoleInput<TStatements, TRoleStatements>): Role<ExactRoleStatements<TRoleStatements>, TStatements>;
+  statements: TStatements;
+};

@@ -1,0 +1,18 @@
+import { PACKAGE_VERSION } from "../../version.mjs";
+// src/plugins/jwt/client.ts
+const jwtClient = (options) => {
+	const jwksPath = options?.jwks?.jwksPath ?? "/jwks";
+	return {
+		id: "better-auth-client",
+		version: PACKAGE_VERSION,
+		$InferServerPlugin: {},
+		pathMethods: { [jwksPath]: "GET" },
+		getActions: ($fetch, _$store, _options) => ({ jwks: async (fetchOptions) => {
+			return await $fetch(jwksPath, {
+				method: "GET",
+				...fetchOptions
+			});
+		} })
+	};
+};
+export { jwtClient };

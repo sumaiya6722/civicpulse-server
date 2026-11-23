@@ -1,0 +1,19 @@
+export declare const schema: {
+  user: {
+    fields: {
+      phoneNumber: {
+        type: "string";
+        required: false;
+        unique: true;
+        sortable: true;
+        returned: true;
+      };
+      phoneNumberVerified: {
+        type: "boolean";
+        required: false;
+        returned: true;
+        input: false;
+      };
+    };
+  };
+};

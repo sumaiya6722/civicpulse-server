@@ -1,0 +1,13 @@
+import "../../types/index.mjs";
+import { initGetDefaultFieldName } from "./get-default-field-name.mjs";
+import { initGetDefaultModelName } from "./get-default-model-name.mjs";
+import { initGetFieldAttributes } from "./get-field-attributes.mjs";
+import { initGetFieldName } from "./get-field-name.mjs";
+import { initGetIdField } from "./get-id-field.mjs";
+import { initGetModelName } from "./get-model-name.mjs";
+import { DBAdapter } from "./index.mjs";
+import { BetterAuthOptions } from "../../types/init-options.mjs";
+import { AdapterFactoryConfig, AdapterFactoryCustomizeAdapterCreator, AdapterFactoryOptions, AdapterTestDebugLogs } from "./types.mjs";
+export type AdapterFactory<Options extends BetterAuthOptions> = (options: Options) => DBAdapter<Options>;
+export declare const createAdapterFactory: <Options extends BetterAuthOptions>({ adapter: customAdapter, config: cfg }: AdapterFactoryOptions) => AdapterFactory<Options>;
+export { AdapterFactoryConfig, AdapterFactoryCustomizeAdapterCreator, AdapterFactoryOptions, AdapterTestDebugLogs, initGetDefaultFieldName, initGetDefaultModelName, initGetFieldAttributes, initGetFieldName, initGetIdField, initGetModelName };

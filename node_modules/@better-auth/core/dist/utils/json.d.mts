@@ -1,0 +1,1 @@
+export declare function safeJSONParse<T>(data: unknown): T | null;

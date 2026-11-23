@@ -1,0 +1,16 @@
+import { PACKAGE_VERSION } from "../../version.mjs";
+import { USERNAME_ERROR_CODES } from "./error-codes.mjs";
+// src/plugins/username/client.ts
+const usernameClient = (options) => {
+	return {
+		id: "username",
+		version: PACKAGE_VERSION,
+		$InferServerPlugin: {},
+		atomListeners: [{
+			matcher: (path) => path === "/sign-in/username",
+			signal: "$sessionSignal"
+		}],
+		$ERROR_CODES: USERNAME_ERROR_CODES
+	};
+};
+export { USERNAME_ERROR_CODES, usernameClient };

@@ -1,0 +1,8 @@
+/**
+ * Marks the request session with `token` as built without a session-store
+ * row. Checks that re-read the store to catch a concurrent revocation skip
+ * such sessions.
+ *
+ * @internal Shared by Better Auth packages; not a supported public API.
+ */
+export declare function markSessionOutsideStore(token: string): Promise<void>;

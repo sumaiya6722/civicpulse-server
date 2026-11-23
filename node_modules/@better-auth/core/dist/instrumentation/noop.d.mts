@@ -1,0 +1,5 @@
+/**
+ * Executes a function without creating an OpenTelemetry span.
+ */
+export declare function noopWithSpan<T>(name: string, attributes: Record<string, string | number | boolean>, fn: () => T): T;
+export declare function noopWithSpan<T>(name: string, attributes: Record<string, string | number | boolean>, fn: () => Promise<T>): Promise<T>;

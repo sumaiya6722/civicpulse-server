@@ -1,0 +1,16 @@
+export interface BroadcastMessage {
+  event?: "session" | undefined;
+  data?: {
+    trigger?: "signout" | "getSession" | "updateUser";
+  } | undefined;
+  clientId: string;
+  timestamp: number;
+}
+export type BroadcastListener = (message: BroadcastMessage) => void;
+export declare const kBroadcastChannel: unique symbol;
+export interface BroadcastChannel {
+  post(message: Record<string, unknown>): void;
+  subscribe(listener: BroadcastListener): () => void;
+  setup(): () => void;
+}
+export declare function getGlobalBroadcastChannel(name?: string): BroadcastChannel;

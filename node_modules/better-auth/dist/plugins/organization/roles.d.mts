@@ -1,0 +1,6 @@
+/**
+ * Normalizes a role value into the comma separated string that is stored in
+ * the database. Whitespace around each role name is removed and empty entries
+ * are dropped.
+ */
+export declare function parseRoles(roles: string | string[]): string;

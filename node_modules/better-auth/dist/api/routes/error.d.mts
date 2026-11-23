@@ -1,0 +1,22 @@
+export declare const error: import("better-call").StrictEndpoint<"/error", {
+  method: "GET";
+  metadata: {
+    openapi: {
+      description: string;
+      responses: {
+        "200": {
+          description: string;
+          content: {
+            "text/html": {
+              schema: {
+                type: "string";
+                description: string;
+              };
+            };
+          };
+        };
+      };
+    };
+    scope: "server";
+  };
+}, Response>;

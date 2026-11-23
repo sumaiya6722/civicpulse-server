@@ -1,0 +1,12 @@
+import { GenericEndpointContext } from "@better-auth/core";
+/**
+ * A middleware to validate callbackURL and origin against trustedOrigins.
+ * Also handles CSRF protection using Fetch Metadata for first-login scenarios.
+ */
+export declare const originCheckMiddleware: import("better-call").Middleware<import("better-call").MiddlewareOptions, (inputContext: import("better-call").MiddlewareInputContext<import("better-call").MiddlewareOptions>) => Promise<void>>;
+export declare const originCheck: (getValue: (ctx: GenericEndpointContext) => string | string[]) => import("better-call").Middleware<import("better-call").MiddlewareOptions, (inputContext: import("better-call").MiddlewareInputContext<import("better-call").MiddlewareOptions>) => Promise<void>>;
+/**
+ * Middleware for CSRF protection using Fetch Metadata headers.
+ * This prevents cross-site navigation login attacks while supporting progressive enhancement.
+ */
+export declare const formCsrfMiddleware: import("better-call").Middleware<import("better-call").MiddlewareOptions, (inputContext: import("better-call").MiddlewareInputContext<import("better-call").MiddlewareOptions>) => Promise<void>>;

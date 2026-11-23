@@ -1,0 +1,8 @@
+export type OnlineListener = (online: boolean) => void;
+export declare const kOnlineManager: unique symbol;
+export interface OnlineManager {
+  setOnline(online: boolean): void;
+  isOnline: boolean;
+  subscribe(listener: OnlineListener): () => void;
+  setup(): () => void;
+}

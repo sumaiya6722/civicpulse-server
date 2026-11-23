@@ -1,0 +1,7 @@
+export type FocusListener = (focused: boolean) => void;
+export declare const kFocusManager: unique symbol;
+export interface FocusManager {
+  setFocused(focused: boolean): void;
+  subscribe(listener: FocusListener): () => void;
+  setup(): () => void;
+}

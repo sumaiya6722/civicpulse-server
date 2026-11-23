@@ -1,0 +1,1 @@
+export declare function isBrowserFetchRequest(headers?: Headers | null): boolean;

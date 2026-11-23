@@ -1,0 +1,7 @@
+export declare const Providers: {
+  readonly CLOUDFLARE_TURNSTILE: "cloudflare-turnstile";
+  readonly GOOGLE_RECAPTCHA: "google-recaptcha";
+  readonly HCAPTCHA: "hcaptcha";
+  readonly CAPTCHAFOX: "captchafox";
+  readonly VERCEL_BOTID: "vercel-botid";
+};

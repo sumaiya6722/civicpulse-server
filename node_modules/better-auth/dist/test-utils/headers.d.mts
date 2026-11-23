@@ -1,0 +1,5 @@
+/**
+ * converts set cookie containing headers to
+ * cookie containing headers
+ */
+export declare function convertSetCookieToCookie(headers: Headers): Headers;

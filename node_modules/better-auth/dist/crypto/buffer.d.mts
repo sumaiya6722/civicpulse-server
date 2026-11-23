@@ -1,0 +1,4 @@
+/**
+ * Compare two buffers in constant time.
+ */
+export declare function constantTimeEqual(a: ArrayBuffer | Uint8Array | string, b: ArrayBuffer | Uint8Array | string): boolean;
