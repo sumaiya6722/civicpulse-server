@@ -87,6 +87,20 @@ export const getAllIssues = async (req, res) => {
       ];
     }
 
+    // Citizens can only see their own issues
+    if (req.user.accountType === "citizen") {
+      filters.reportedBy = req.user.id;
+    }
+
+    // Department staff can only see issues assigned to their department
+    if (req.user.accountType === "department") {
+      filters.assignedDepartment = req.user.department;
+    }
+
+    // Maintenance staff can only see issues assigned to their team
+    if (req.user.accountType === "maintenance") {
+      filters.assignedTeam = req.user.team;
+    }
     // Pagination
     const currentPage = Math.max(1, Number(page));
     const itemsPerPage = Math.min(100, Math.max(1, Number(limit)));
@@ -136,7 +150,7 @@ export const getIssueById = async (req, res) => {
     const filters = { _id: id };
 
     // Citizens can only access their own issues
-    if (req.user.role === "citizen") {
+    if (req.user.accountType === "citizen") {
       filters.reportedBy = req.user.id;
     }
 
@@ -255,10 +269,6 @@ export const deleteIssue = async (req, res) => {
     const { id } = req.params;
 
     const filters = { _id: id };
-
-    if (req.user.role === "citizen") {
-      filters.reportedBy = req.user.id;
-    }
 
     const deletedIssue = await Issue.findOneAndDelete(filters);
 
@@ -568,7 +578,7 @@ export const getIssueActivities = async (req, res) => {
     }
 
     // Citizens can only view activities of their own issues
-    if (req.user.role === "citizen" && issue.reportedBy !== req.user.id) {
+    if (req.user.accountType === "citizen" && issue.reportedBy !== req.user.id) {
       return res.status(404).json({
         success: false,
         message: "Issue not found.",
