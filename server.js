@@ -13,6 +13,7 @@ import departmentRoutes from "./src/routes/departmentRoutes.js";
 import teamRoutes from "./src/routes/teamRoutes.js";
 import staffRoutes from "./src/routes/staffRoutes.js";
 import dashboardRoutes from "./src/routes/dashboardRoutes.js";
+import notificationRoutes from "./src/routes/notificationRoutes.js";
 
 
 
@@ -53,6 +54,7 @@ const startServer = async () => {
     app.use("/api", teamRoutes);
     app.use("/api", staffRoutes);
     app.use("/api", dashboardRoutes);
+    app.use("/api", notificationRoutes);
 
     // 7. Root route
     app.get("/", (req, res) => {

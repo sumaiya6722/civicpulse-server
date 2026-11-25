@@ -9,7 +9,7 @@ import {
 
 import { requireAuth } from "../middleware/requireAuth.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
-import { deactivateStaffAccount, reactivateStaffAccount } from "../controllers/stuffController.js";
+import { deactivateStaffAccount, reactivateStaffAccount } from "../controllers/staffController.js";
 
 const router = express.Router();
 

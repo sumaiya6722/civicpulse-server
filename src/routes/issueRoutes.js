@@ -1,6 +1,6 @@
 
 import express from "express";
-
+import upload from "../middleware/upload.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
@@ -24,6 +24,7 @@ router.post(
   "/issues",
   requireAuth,
   authorizeRoles("citizen"),
+  upload.single("image"),
   createIssue
 );
 

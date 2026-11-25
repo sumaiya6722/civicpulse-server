@@ -1,9 +1,12 @@
 // This controller will receive the submitted issue data and save it to the database.
 import Issue from "../models/Issue.js";
+import notifyAssignedStaff from "../utils/notifyAssignedStaff.js";
 import logIssueActivity from "../utils/logIssueActivity.js";
 import IssueActivity from "../models/IssueActivity.js";
 import Department from "../models/Department.js";
 import Team from "../models/Team.js";
+import uploadToCloudinary from "../utils/uploadToCloudinary.js";
+import createNotification from "../utils/createNotification.js";
 
 
 // Create a new issue
@@ -15,10 +18,8 @@ export const createIssue = async (req, res) => {
       description,
       category,
       location,
-      imageUrl,
     } = req.body;
 
-    // Validate required fields
     if (!title || !description || !category || !location) {
       return res.status(400).json({
         success: false,
@@ -26,11 +27,16 @@ export const createIssue = async (req, res) => {
       });
     }
 
-    // Validate location details
+    // Parse location if it arrives as a JSON string
+    const parsedLocation =
+      typeof location === "string"
+        ? JSON.parse(location)
+        : location;
+
     if (
-      !location.address ||
-      location.latitude === undefined ||
-      location.longitude === undefined
+      !parsedLocation.address ||
+      parsedLocation.latitude === undefined ||
+      parsedLocation.longitude === undefined
     ) {
       return res.status(400).json({
         success: false,
@@ -38,21 +44,37 @@ export const createIssue = async (req, res) => {
       });
     }
 
+    let imageUrl = null;
+
+    // Upload image to Cloudinary if one was provided
+    if (req.file) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer);
+      imageUrl = uploadResult.secure_url;
+    }
+
     const newIssue = await Issue.create({
       title,
       description,
       category,
-      location,
-      imageUrl: imageUrl || null,
+      location: parsedLocation,
+      imageUrl,
       reportedBy: req.user.id,
     });
 
-    // Record issue creation activity
     await logIssueActivity({
       issueId: newIssue._id,
       action: "created",
       description: "A new issue was reported.",
       performedBy: req.user.id,
+    });
+
+    // Notify the citizen that their issue was submitted
+    await createNotification({
+      recipientId: newIssue.reportedBy,
+      issueId: newIssue._id,
+      type: "issue_submitted",
+      title: "Issue Submitted Successfully",
+      message: `Your report "${newIssue.title}" has been submitted successfully.`,
     });
 
     return res.status(201).json({
@@ -64,7 +86,7 @@ export const createIssue = async (req, res) => {
   } catch (error) {
     console.error("Issue creation error:", error);
 
-    if (error.name === "ValidationError") {
+    if (error.name === "ValidationError" || error instanceof SyntaxError) {
       return res.status(400).json({
         success: false,
         message: error.message,
@@ -77,6 +99,7 @@ export const createIssue = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -176,12 +199,18 @@ export const getIssueById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Build the query filter
     const filters = { _id: id };
 
-    // Citizens can only access their own issues
     if (req.user.accountType === "citizen") {
       filters.reportedBy = req.user.id;
+    }
+
+    if (req.user.accountType === "department") {
+      filters.assignedDepartment = req.user.department;
+    }
+
+    if (req.user.accountType === "maintenance") {
+      filters.assignedTeam = req.user.team;
     }
 
     // Find the issue using the filters
@@ -325,6 +354,7 @@ export const deleteIssue = async (req, res) => {
 
 
 // Update issue status
+
 export const updateIssueStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -332,10 +362,11 @@ export const updateIssueStatus = async (req, res) => {
 
     const allowedStatuses = [
       "pending",
-      "verified",
+      "under_review",
       "assigned",
-      "in-progress",
+      "in_progress",
       "resolved",
+      "rejected",
     ];
 
     if (!allowedStatuses.includes(status)) {
@@ -361,12 +392,11 @@ export const updateIssueStatus = async (req, res) => {
       });
     }
 
-    // Store the previous status before changing it
     const previousStatus = issue.status;
 
     issue.status = status;
 
-    if (status === "in-progress" && !issue.startedAt) {
+    if (status === "in_progress" && !issue.startedAt) {
       issue.startedAt = new Date();
     }
 
@@ -377,7 +407,7 @@ export const updateIssueStatus = async (req, res) => {
 
     await issue.save();
 
-    // Record the status change
+    // Record status change in activity history
     await logIssueActivity({
       issueId: issue._id,
       action: status === "resolved" ? "resolved" : "status-updated",
@@ -387,12 +417,57 @@ export const updateIssueStatus = async (req, res) => {
       performedBy: req.user.id,
     });
 
-    res.status(200).json({
+    // Create a notification only when the status actually changes
+    if (previousStatus !== status) {
+      const notificationMessages = {
+        pending: {
+          type: "issue_submitted",
+          title: "Issue Status Updated",
+          message: `Your report "${issue.title}" is now pending.`,
+        },
+        under_review: {
+          type: "issue_under_review",
+          title: "Your Issue Is Under Review",
+          message: `Your report "${issue.title}" is now being reviewed.`,
+        },
+        assigned: {
+          type: "issue_assigned",
+          title: "Your Issue Has Been Assigned",
+          message: `Your report "${issue.title}" has been assigned to a department and maintenance team.`,
+        },
+        in_progress: {
+          type: "issue_in_progress",
+          title: "Work Has Started",
+          message: `Work has started on your reported issue "${issue.title}".`,
+        },
+        resolved: {
+          type: "issue_resolved",
+          title: "Your Issue Has Been Resolved",
+          message: `Your report "${issue.title}" has been marked as resolved.`,
+        },
+        rejected: {
+          type: "issue_rejected",
+          title: "Your Issue Was Rejected",
+          message: `Your report "${issue.title}" has been rejected.`,
+        },
+      };
+
+      const notification = notificationMessages[status];
+
+      if (notification) {
+        await createNotification({
+          recipientId: issue.reportedBy,
+          issueId: issue._id,
+          ...notification,
+        });
+      }
+    }
+
+    return res.status(200).json({
       success: true,
       message: "Issue progress updated successfully!",
       data: issue,
     });
-
   } catch (error) {
     console.error("Issue progress update error:", error);
 
@@ -410,12 +485,13 @@ export const updateIssueStatus = async (req, res) => {
       });
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Something went wrong while updating issue progress.",
     });
   }
 };
+
 
 
 // Assign an issue to a department and maintenance team
@@ -431,7 +507,6 @@ export const assignIssue = async (req, res) => {
       });
     }
 
-    // Find the issue
     const issue = await Issue.findById(id);
 
     if (!issue) {
@@ -468,8 +543,19 @@ export const assignIssue = async (req, res) => {
       });
     }
 
-    const previousDepartment = issue.assignedDepartment;
-    const previousTeam = issue.assignedTeam;
+    const previousDepartment = issue.assignedDepartment
+      ? String(issue.assignedDepartment)
+      : null;
+
+    const previousTeam = issue.assignedTeam
+      ? String(issue.assignedTeam)
+      : null;
+
+    const departmentChanged =
+      previousDepartment !== String(department._id);
+
+    const teamChanged =
+      previousTeam !== String(team._id);
 
     // Assign department and team
     issue.assignedDepartment = department._id;
@@ -479,7 +565,7 @@ export const assignIssue = async (req, res) => {
 
     await issue.save();
 
-    // Record the assignment activity
+    // Record assignment activity
     await logIssueActivity({
       issueId: issue._id,
       action: "assigned",
@@ -489,13 +575,36 @@ export const assignIssue = async (req, res) => {
       performedBy: req.user.id,
     });
 
+    // Notify the citizen only when the assignment actually changes
+    if (departmentChanged || teamChanged) {
+      await createNotification({
+        recipientId: issue.reportedBy,
+        issueId: issue._id,
+        type: "issue_assigned",
+        title: "Your Issue Has Been Assigned",
+        message: `Your report "${issue.title}" has been assigned to ${department.name} department and ${team.name}.`,
+      });
+
+      // Notify the relevant department managers and maintenance staff
+      await notifyAssignedStaff({
+        req,
+        issue,
+        departmentId: department._id,
+        teamId: team._id,
+        departmentName: department.name,
+        teamName: team.name,
+        departmentChanged,
+        teamChanged,
+      });
+    }
+
     // Return populated assignment details
     await issue.populate([
       { path: "assignedDepartment", select: "name" },
       { path: "assignedTeam", select: "name" },
     ]);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Issue assigned successfully!",
       data: issue,
@@ -517,7 +626,7 @@ export const assignIssue = async (req, res) => {
       });
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Something went wrong while assigning the issue.",
     });
@@ -529,13 +638,22 @@ export const assignIssue = async (req, res) => {
 // Get issue statistics
 export const getIssueStats = async (req, res) => {
   try {
-    const [totalIssues, pendingIssues, verifiedIssues, assignedIssues, inProgressIssues, resolvedIssues] = await Promise.all([
+    const [
+      totalIssues,
+      pendingIssues,
+      underReviewIssues,
+      assignedIssues,
+      inProgressIssues,
+      resolvedIssues,
+      rejectedIssues,
+    ] = await Promise.all([
       Issue.countDocuments(),
-      Issue.countDocuments({ status: "pending" }),   //This counts only documents whose status is pending.
-      Issue.countDocuments({ status: "verified" }),
+      Issue.countDocuments({ status: "pending" }),
+      Issue.countDocuments({ status: "under_review" }),
       Issue.countDocuments({ status: "assigned" }),
-      Issue.countDocuments({ status: "in-progress" }),
+      Issue.countDocuments({ status: "in_progress" }),
       Issue.countDocuments({ status: "resolved" }),
+      Issue.countDocuments({ status: "rejected" }),
     ]);
 
     res.status(200).json({
@@ -543,10 +661,11 @@ export const getIssueStats = async (req, res) => {
       data: {
         totalIssues,
         pendingIssues,
-        verifiedIssues,
+        underReviewIssues,
         assignedIssues,
         inProgressIssues,
         resolvedIssues,
+        rejectedIssues,
       },
     });
   } catch (error) {
@@ -601,6 +720,27 @@ export const getIssueActivities = async (req, res) => {
     const issue = await Issue.findById(id);
 
     if (!issue) {
+      return res.status(404).json({
+        success: false,
+        message: "Issue not found.",
+      });
+    }
+
+    // Restrict staff to issues assigned to their department or team
+    if (
+      req.user.accountType === "department" &&
+      String(issue.assignedDepartment) !== String(req.user.department)
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: "Issue not found.",
+      });
+    }
+
+    if (
+      req.user.accountType === "maintenance" &&
+      String(issue.assignedTeam) !== String(req.user.team)
+    ) {
       return res.status(404).json({
         success: false,
         message: "Issue not found.",

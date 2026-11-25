@@ -86,6 +86,12 @@ const issueSchema = new mongoose.Schema(
       },
     },
 
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high", "critical"],
+      default: "medium",
+    },
+
     status: {
       type: String,
       enum: [
