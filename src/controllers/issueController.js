@@ -7,18 +7,47 @@ import Team from "../models/Team.js";
 
 
 // Create a new issue
+
 export const createIssue = async (req, res) => {
   try {
-    const { title, description, category, location } = req.body;
-
-    const newIssue = await Issue.create({   //Issue.create() creates a new document in MongoDB using your Mongoose model.
+    const {
       title,
       description,
       category,
       location,
+      imageUrl,
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !category || !location) {
+      return res.status(400).json({
+        success: false,
+        message: "Title, description, category, and location are required.",
+      });
+    }
+
+    // Validate location details
+    if (
+      !location.address ||
+      location.latitude === undefined ||
+      location.longitude === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Address, latitude, and longitude are required.",
+      });
+    }
+
+    const newIssue = await Issue.create({
+      title,
+      description,
+      category,
+      location,
+      imageUrl: imageUrl || null,
       reportedBy: req.user.id,
     });
 
+    // Record issue creation activity
     await logIssueActivity({
       issueId: newIssue._id,
       action: "created",
@@ -26,13 +55,13 @@ export const createIssue = async (req, res) => {
       performedBy: req.user.id,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: "Thanks to Allah,Issue reported successfully!",
+      message: "Issue reported successfully!",
       data: newIssue,
     });
-  }
-  catch (error) {
+
+  } catch (error) {
     console.error("Issue creation error:", error);
 
     if (error.name === "ValidationError") {
@@ -42,12 +71,13 @@ export const createIssue = async (req, res) => {
       });
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Something went wrong while reporting the issue.",
     });
   }
 };
+
 
 
 export const getAllIssues = async (req, res) => {

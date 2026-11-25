@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const issueSchema = new mongoose.Schema(
@@ -26,6 +27,13 @@ const issueSchema = new mongoose.Schema(
         "public_property",
         "other",
       ],
+    },
+
+    // Uploaded issue image URL
+    imageUrl: {
+      type: String,
+      default: null,
+      trim: true,
     },
 
     assignedDepartment: {
